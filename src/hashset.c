@@ -28,6 +28,7 @@ typedef enum hs_slot_status
 }
 hs_slot_status_t;
 
+
 /***                          ***
 * === forward declarations  === *
 ***                          ***/
@@ -43,6 +44,10 @@ static char *get_value(const hashset_t *const set, const size_t index);
 
 static void randomize_factors(hs_header_t *const header);
 static void rehash(hashset_t **const set);
+static bool contained_in(const void *const element, void *const param);
+static bool not_contained_in(const void *const element, void *const param);
+static bool contained_in_both(const void *const element, void *const param);
+
 
 /***                       ***
 * === API implementation === *
@@ -76,9 +81,49 @@ void hs_create_(hashset_t **const set, const hs_opts_t *opts)
 }
 
 
+hashset_t *hs_clone(const hashset_t *const set)
+{
+    return vector_clone(set);
+}
+
+
 void hs_destroy(hashset_t *set)
 {
     vector_destroy(set);
+}
+
+
+bool hs_contains(const hashset_t *const set, const void *const value)
+{
+    assert(set);
+    assert(value);
+
+    const hs_header_t* header = get_hs_header(set);
+    const size_t capacity = hs_capacity(set);
+    const size_t start_index = hash_to_index(header,
+        header->hashfunc(value, header->value_size),
+        capacity);
+
+    for (size_t i = 0; i < capacity; ++i)
+    {
+        const size_t index = (i + start_index) % capacity;
+        const hs_slot_status_t slot_stat = bitset_test(header->usage_tbl, BIT_FIELD_LEN, index);
+        switch (slot_stat)
+        {
+            case HS_SLOT_UNUSED: return false;
+
+            case HS_SLOT_USED:
+                if (0 == memcmp(get_value(set, index), value, header->value_size))
+                {
+                    return true;
+                }
+                break;
+
+            case HS_SLOT_DELETED: continue;
+        }
+    }
+
+    return false;
 }
 
 
@@ -146,6 +191,93 @@ void hs_remove(hashset_t *const set, const void *const value)
                 continue;
         }
     }
+}
+
+
+size_t hs_remove_many(hashset_t *const set, const predicate_t predicate, void *const param)
+{
+    assert(set);
+    assert(predicate);
+
+    hs_header_t *header = get_hs_header(set);
+    const size_t capacity = hs_capacity(set);
+    size_t removes = 0;
+
+    for (size_t i = 0; i < capacity; ++i)
+    {
+        if (HS_SLOT_USED == bitset_test(header->usage_tbl, BIT_FIELD_LEN, i)
+            && predicate(get_value(set, i), param))
+        {
+            bitset_set(header->usage_tbl, BIT_FIELD_LEN, i, HS_SLOT_DELETED);
+            ++removes;
+        }
+    }
+
+    return removes;
+}
+
+
+void hs_unionize(hashset_t **const set, const hashset_t *const other)
+{
+    hs_header_t *other_header = get_hs_header(other);
+    const size_t other_cap = hs_capacity(other);
+
+    for (size_t i = 0; i < other_cap; ++i)
+    {
+        if (HS_SLOT_USED == bitset_test(other_header->usage_tbl, BIT_FIELD_LEN, i))
+        {
+            (void) hs_insert(set, get_value(other, i));
+        }
+    }
+}
+
+
+void hs_intersect(hashset_t **const set, const hashset_t *const other)
+{
+    (void) hs_remove_many(*set, not_contained_in, (void*)other);
+}
+
+
+void hs_subtract(hashset_t **const set, const hashset_t *const other)
+{
+    (void) hs_remove_many(*set, contained_in, (void*)other);
+}
+
+
+hashset_t *hs_make_union(const hashset_t *const first, const hashset_t *const second)
+{
+    hashset_t *result = hs_clone(first);
+    hs_unionize(&result, second);
+    return result;
+}
+
+
+hashset_t *hs_make_intersection(const hashset_t *const first, const hashset_t *const second)
+{
+    hashset_t *result = hs_clone(first);
+    hs_intersect(&result, second);
+    return result;
+}
+
+
+hashset_t *hs_make_diff(const hashset_t *const first, const hashset_t *const second)
+{
+    hashset_t *result = hs_clone(first);
+    hs_subtract(&result, second);
+    return result;
+}
+
+struct two_sets
+{
+    const hashset_t *const a, *const b;
+};
+
+hashset_t *hs_make_symdiff(const hashset_t *const first, const hashset_t *const second)
+{
+    hashset_t *result = hs_make_union(first, second);
+    struct two_sets sets = {first, second};
+    hs_remove_many(result, contained_in_both, &sets);
+    return result;
 }
 
 
@@ -281,5 +413,25 @@ static void rehash(hashset_t **const set)
 
     hs_destroy(*set);
     *set = new;
+}
+
+
+static bool contained_in(const void *const element, void *const param)
+{
+    const hashset_t *const other = param;
+    return hs_contains(other, element);
+}
+
+
+static bool not_contained_in(const void *const element, void *const param)
+{
+    return !contained_in(element, param);
+}
+
+
+static bool contained_in_both(const void *const element, void *const param)
+{
+    struct two_sets *sets = param;
+    return hs_contains(sets->a, element) && hs_contains(sets->b, element);
 }
 
