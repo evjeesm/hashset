@@ -75,7 +75,7 @@ size_t hs_remove_many(hashset_t *const set, const predicate_t predicate, void *c
 /*
 * Modifies `set` in a way that it will contain union of itself with `other` set. (OR)
 */
-void hs_unionize(hashset_t **const set, const hashset_t *const other);
+void hs_add(hashset_t **const set, const hashset_t *const other);
 
 
 /*

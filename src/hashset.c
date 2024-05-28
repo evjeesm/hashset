@@ -217,8 +217,11 @@ size_t hs_remove_many(hashset_t *const set, const predicate_t predicate, void *c
 }
 
 
-void hs_unionize(hashset_t **const set, const hashset_t *const other)
+void hs_add(hashset_t **const set, const hashset_t *const other)
 {
+    assert(set && *set);
+    assert(other);
+
     hs_header_t *other_header = get_hs_header(other);
     const size_t other_cap = hs_capacity(other);
 
@@ -234,26 +237,38 @@ void hs_unionize(hashset_t **const set, const hashset_t *const other)
 
 void hs_intersect(hashset_t **const set, const hashset_t *const other)
 {
+    assert(set && *set);
+    assert(other);
+
     (void) hs_remove_many(*set, not_contained_in, (void*)other);
 }
 
 
 void hs_subtract(hashset_t **const set, const hashset_t *const other)
 {
+    assert(set && *set);
+    assert(other);
+
     (void) hs_remove_many(*set, contained_in, (void*)other);
 }
 
 
 hashset_t *hs_make_union(const hashset_t *const first, const hashset_t *const second)
 {
+    assert(first);
+    assert(second);
+
     hashset_t *result = hs_clone(first);
-    hs_unionize(&result, second);
+    hs_add(&result, second);
     return result;
 }
 
 
 hashset_t *hs_make_intersection(const hashset_t *const first, const hashset_t *const second)
 {
+    assert(first);
+    assert(second);
+
     hashset_t *result = hs_clone(first);
     hs_intersect(&result, second);
     return result;
@@ -262,10 +277,14 @@ hashset_t *hs_make_intersection(const hashset_t *const first, const hashset_t *c
 
 hashset_t *hs_make_diff(const hashset_t *const first, const hashset_t *const second)
 {
+    assert(first);
+    assert(second);
+
     hashset_t *result = hs_clone(first);
     hs_subtract(&result, second);
     return result;
 }
+
 
 struct two_sets
 {
@@ -274,6 +293,9 @@ struct two_sets
 
 hashset_t *hs_make_symdiff(const hashset_t *const first, const hashset_t *const second)
 {
+    assert(first);
+    assert(second);
+
     hashset_t *result = hs_make_union(first, second);
     struct two_sets sets = {first, second};
     hs_remove_many(result, contained_in_both, &sets);
@@ -283,12 +305,16 @@ hashset_t *hs_make_symdiff(const hashset_t *const first, const hashset_t *const 
 
 size_t hs_capacity(const hashset_t *const set)
 {
+    assert(set);
+
     return vector_initial_capacity(set);
 }
 
 
 size_t hs_count(const hashset_t *const set)
 {
+    assert(set);
+
     const size_t capacity = hs_capacity(set);
     const hs_header_t *header = get_hs_header(set);
     size_t count = 0;
@@ -306,6 +332,8 @@ size_t hs_count(const hashset_t *const set)
 
 vector_t *hs_values(const hashset_t *const set)
 {
+    assert(set);
+
     const hs_header_t *header = get_hs_header(set);
     const size_t capacity = hs_capacity(set);
 

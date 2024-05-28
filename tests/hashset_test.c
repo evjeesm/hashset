@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 static hashset_t *set;
+static hashset_t *other;
 
 static hash_t hash_int(const void *ptr, size_t size)
 {
@@ -28,11 +29,39 @@ static void setup_full(void)
         .hashfunc = hash_int,
         .initial_cap = cap
     );
-    
+
     // full capacity
     for (int i = 0; i < (int)cap; ++i)
     {
         ck_assert(hs_insert(&set, &i));
+    }
+}
+
+static void setup_two_sets(void)
+{
+    const size_t cap = 10;
+    hs_create(set,
+        .value_size = sizeof(int),
+        .hashfunc = hash_int,
+        .initial_cap = cap
+    );
+
+    /* 1 - 10 */
+    for (int i = 1; i <= 10; ++i)
+    {
+        (void) hs_insert(&set, &i);
+    }
+
+    hs_create(other,
+        .value_size = sizeof(int),
+        .hashfunc = hash_int,
+        .initial_cap = cap
+    );
+
+    /* 5 - 15 */
+    for (int i = 5; i <= 15; ++i)
+    {
+        (void) hs_insert(&other, &i);
     }
 }
 
@@ -41,6 +70,11 @@ static void teardown(void)
     hs_destroy(set);
 }
 
+static void teardown_two_sets(void)
+{
+    hs_destroy(set);
+    hs_destroy(other);
+}
 
 START_TEST (test_hs_create)
 {
@@ -121,6 +155,34 @@ START_TEST (test_hs_insert_rehash)
 END_TEST
 
 
+static bool exact(const void *const element, void *const param)
+{
+    return *(int*) element == *(int*) param;
+}
+
+START_TEST (test_hs_values)
+{
+    const int amount = 3;
+    for (int i = 0; i < amount; ++i)
+    {
+        hs_insert(&set, &i);
+    }
+
+    vector_t *values = hs_values(set);
+
+    ck_assert_ptr_nonnull(values);
+    ck_assert_uint_eq(vector_capacity(values), amount);
+
+    for (int i = 0; i < amount; ++i)
+    {
+        vector_linear_find(values, amount, exact, &i);
+    }
+
+    vector_destroy(values);
+}
+END_TEST
+
+
 /****************************************************
 *  Test Case: Remove
 *   (use with `setup_full` fixture)
@@ -162,60 +224,108 @@ START_TEST (test_hs_remove_many)
 END_TEST
 
 
-// START_TEST (test_hs_values)
-// {
-//     const int expected_cap = 10;
-//     for (int key = 0; key < expected_cap; ++key)
-//     {
-//         int val = key + 10;
-//         ck_assert(hs_insert(&set, &key, &val));
-//     }
-//
-//     vector_t *keys = hs_keys(set);
-//     vector_t *values = hs_values(set);
-//
-//     ck_assert_uint_eq(vector_capacity(keys), expected_cap);
-//     ck_assert_uint_eq(vector_capacity(values), expected_cap);
-//
-//     for (size_t i = 0; i < vector_capacity(keys); ++i)
-//     {
-//         int key = *(int*)vector_get(keys, i);
-//         int value = *(int*)vector_get(values, i);
-//
-//         ck_assert_int_eq(value, key + 10);
-//     }
-//
-//     vector_destroy(keys);
-//     vector_destroy(values);
-// }
-// END_TEST
+/****************************************************
+*  Test Case: Operations
+*   (use with `setup_two_sets` and `teardown_two_sets` fixture)
+****************************************************/
+
+START_TEST (test_hs_add)
+{
+    hs_add(&set, other);
+
+    /* includes both ranges */
+    for (int i = 1; i <= 15; ++i)
+    {
+        ck_assert(hs_contains(set, &i));
+    }
+    ck_assert_uint_eq(hs_count(set), 15);
+}
+END_TEST
+
+
+START_TEST (test_hs_intersect)
+{
+    hs_intersect(&set, other);
+
+    /* shared range [5, 10] */
+    for (int i = 5; i <= 10; ++i)
+    {
+        ck_assert(hs_contains(set, &i));
+    }
+    ck_assert_uint_eq(hs_count(set), 6);
+}
+END_TEST
+
+
+START_TEST (test_hs_subtract)
+{
+    hs_subtract(&set, other);
+
+    /* [1 - 10] - [5 - 15] => [1 - 4] */
+    for (int i = 1; i <= 4; ++i)
+    {
+        ck_assert(hs_contains(set, &i));
+    }
+    ck_assert_uint_eq(hs_count(set), 4);
+}
+END_TEST
+
+
+START_TEST (test_hs_make_symdiff)
+{
+    hashset_t *symdiff = hs_make_symdiff(set, other);
+    ck_assert_ptr_nonnull(symdiff);
+
+    for (int i = 1; i <= 4; ++i)
+    {
+        ck_assert(hs_contains(symdiff, &i));
+    }
+
+    for (int i = 11; i <= 15; ++i)
+    {
+        ck_assert(hs_contains(symdiff, &i));
+    }
+
+    ck_assert_uint_eq(hs_count(symdiff), 9);
+    hs_destroy(symdiff);
+}
+END_TEST
+
+
 
 Suite *hash_set_suite(void)
 {
     Suite *s;
-    TCase *tc_core, *tc_remove;
+    TCase *tc_core, *tc_remove, *tc_operations;
 
     s = suite_create("Hash Map");
     
     /* Core test case */
     tc_core = tcase_create("Core");
-
     tcase_add_checked_fixture(tc_core, setup_empty, teardown);
     tcase_add_test(tc_core, test_hs_create);
     tcase_add_test(tc_core, test_hs_insert);
     tcase_add_test(tc_core, test_hs_insert_unique);
     tcase_add_test(tc_core, test_hs_insert_full);
     tcase_add_test(tc_core, test_hs_insert_rehash);
+    tcase_add_test(tc_core, test_hs_values);
     suite_add_tcase(s, tc_core);
 
     tc_remove = tcase_create("Remove");
-
     tcase_add_checked_fixture(tc_remove, setup_full, teardown);
     tcase_add_test(tc_remove, test_hs_remove);
     tcase_add_test(tc_remove, test_hs_remove_many);
-    // tcase_add_test(tc_remove, test_hs_values);
-    
+
     suite_add_tcase(s, tc_remove);
+
+    tc_operations = tcase_create("Operations");
+    tcase_add_checked_fixture(tc_operations, setup_two_sets, teardown_two_sets);
+    tcase_add_test(tc_operations, test_hs_add);
+    tcase_add_test(tc_operations, test_hs_intersect);
+    tcase_add_test(tc_operations, test_hs_subtract);
+    tcase_add_test(tc_operations, test_hs_make_symdiff);
+
+    suite_add_tcase(s, tc_operations);
 
     return s;
 }
