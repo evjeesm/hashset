@@ -31,7 +31,7 @@ hs_opts_t;
 /*
 * Creates hashset
 */
-void hs_create_(hashset_t **const set, const hs_opts_t *opts);
+void hs_create_(hashset_t **const set, const hs_opts_t *const opts);
 
 
 /*

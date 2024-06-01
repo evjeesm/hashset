@@ -53,7 +53,7 @@ static bool contained_in_both(const void *const element, void *const param);
 * === API implementation === *
 ***                       ***/
 
-void hs_create_(hashset_t **const set, const hs_opts_t *opts)
+void hs_create_(hashset_t **const set, const hs_opts_t *const opts)
 {
     assert(opts->value_size && "value_size wasn't provided");
     assert(opts->hashfunc && "hashfunc wasn't provided");
@@ -83,12 +83,14 @@ void hs_create_(hashset_t **const set, const hs_opts_t *opts)
 
 hashset_t *hs_clone(const hashset_t *const set)
 {
+    assert(set);
     return vector_clone(set);
 }
 
 
-void hs_destroy(hashset_t *set)
+void hs_destroy(hashset_t *const set)
 {
+    assert(set);
     vector_destroy(set);
 }
 
@@ -127,9 +129,10 @@ bool hs_contains(const hashset_t *const set, const void *const value)
 }
 
 
-bool hs_insert(hashset_t **set, const void *value)
+bool hs_insert(hashset_t **set, const void *const value)
 {
     assert(set && *set);
+    assert(value);
 
     hs_header_t* header = get_hs_header(*set);
     const size_t capacity = hs_capacity(*set);
@@ -163,6 +166,7 @@ bool hs_insert(hashset_t **set, const void *value)
 void hs_remove(hashset_t *const set, const void *const value)
 {
     assert(set);
+    assert(value);
 
     hs_header_t* header = get_hs_header(set);
     const size_t capacity = vector_capacity(set);
