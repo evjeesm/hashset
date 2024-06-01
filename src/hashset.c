@@ -43,7 +43,7 @@ static void set_value(hashset_t *const set, const size_t index, const void *cons
 static char *get_value(const hashset_t *const set, const size_t index);
 
 static void randomize_factors(hs_header_t *const header);
-static void rehash(hashset_t **const set);
+static void rehash(hashset_t **const set, const size_t new_cap);
 static bool contained_in(const void *const element, void *const param);
 static bool not_contained_in(const void *const element, void *const param);
 static bool contained_in_both(const void *const element, void *const param);
@@ -156,10 +156,24 @@ bool hs_insert(hashset_t **set, const void *const value)
         }
     }
 
-    rehash(set); /* rehash never fails unless allocation error
-                    occires in which case vector_error_handler will exit from the application. */
+    const size_t new_capacity = 2 * hs_capacity(*set);
+    rehash(set, new_capacity);
+    /* rehash never fails unless allocation error
+     * occires in which case vector_error_handler will exit from the application. */
     (void)hs_insert(set, value);
     return true;
+}
+
+
+void hs_shrink_reserve(hashset_t **const set, const float reserve)
+{
+    assert(set && *set);
+    assert(reserve >= 0.0f);
+
+    const size_t count = hs_count(*set);
+    const size_t new_cap = count * (1.0f + reserve);
+
+    rehash(set, new_cap);
 }
 
 
@@ -421,16 +435,17 @@ static size_t hash_to_index(const hs_header_t *header, const hash_t hash, const 
 }
 
 
-static void rehash(hashset_t **const set)
+static void rehash(hashset_t **const set, const size_t new_cap)
 {
+    assert(new_cap >= hs_count(*set));
+
     const hs_header_t *old_header = get_hs_header(*set);
     const size_t prev_capacity = vector_initial_capacity(*set);
 
     hashset_t *new;
-    const size_t new_capacity = 2 * vector_initial_capacity(*set);
 
     hs_create(new,
-        .initial_cap = new_capacity,
+        .initial_cap = new_cap,
         .value_size = old_header->value_size,
         .hashfunc = old_header->hashfunc,
     );

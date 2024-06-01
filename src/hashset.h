@@ -60,6 +60,18 @@ bool hs_insert(hashset_t **const set, const void *const value);
 
 
 /*
+* Shrink hashmap and perform rehash,
+* reserving free space portion of currently stored elements
+* (`reserve` param is a positive real number that denotes 
+*  how much free space to reserve relative to a current amount of elements being stored:
+*    = 0.0f -> do not reserve any space
+*    = 1.0f -> reserve as match free space as elements currently stored, etc...
+*  ).
+*/
+void hs_shrink_reserve(hashset_t **const set, const float reserve);
+
+
+/*
 * Remove value from hashset. If there is no such value,
 * then an operation considered successfull.
 */
