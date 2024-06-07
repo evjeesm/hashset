@@ -37,7 +37,7 @@ void hs_create_(hashset_t **const set, const hs_opts_t *const opts);
 /*
 * Makes exact copy of the original set.
 */ 
-hashset_t *hs_clone(const hashset_t *const set);
+hashset_t *hs_clone(hashset_t *const set);
 
 
 /*
@@ -105,26 +105,26 @@ void hs_subtract(hashset_t **const set, const hashset_t *const other);
 /*
 * Makes new set that has elements of both sets. (OR)
 */
-hashset_t *hs_make_union(const hashset_t *const first, const hashset_t *const second);
+hashset_t *hs_make_union(hashset_t *const first, const hashset_t *const second);
 
 
 /*
 * Makes new set of elements that exist in both sets at once. (AND)
 */
-hashset_t *hs_make_intersection(const hashset_t *const first, const hashset_t *const second);
+hashset_t *hs_make_intersection(hashset_t *const first, const hashset_t *const second);
 
 
 /*
 * Makes new set that contains elements presented in `first` set,
 * but not presented in `second`. (first - second)
 */
-hashset_t *hs_make_diff(const hashset_t *const first, const hashset_t *const second);
+hashset_t *hs_make_diff(hashset_t *const first, const hashset_t *const second);
 
 
 /*
 * Makes new set that contains elements that not presented in both sets. (NAND)
 */
-hashset_t *hs_make_symdiff(const hashset_t *const first, const hashset_t *const second);
+hashset_t *hs_make_symdiff(hashset_t *const first, const hashset_t *const second);
 
 
 /*

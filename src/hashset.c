@@ -81,7 +81,7 @@ void hs_create_(hashset_t **const set, const hs_opts_t *const opts)
 }
 
 
-hashset_t *hs_clone(const hashset_t *const set)
+hashset_t *hs_clone(hashset_t *const set)
 {
     assert(set);
     return vector_clone(set);
@@ -271,7 +271,7 @@ void hs_subtract(hashset_t **const set, const hashset_t *const other)
 }
 
 
-hashset_t *hs_make_union(const hashset_t *const first, const hashset_t *const second)
+hashset_t *hs_make_union(hashset_t *const first, const hashset_t *const second)
 {
     assert(first);
     assert(second);
@@ -282,7 +282,7 @@ hashset_t *hs_make_union(const hashset_t *const first, const hashset_t *const se
 }
 
 
-hashset_t *hs_make_intersection(const hashset_t *const first, const hashset_t *const second)
+hashset_t *hs_make_intersection(hashset_t *const first, const hashset_t *const second)
 {
     assert(first);
     assert(second);
@@ -293,7 +293,7 @@ hashset_t *hs_make_intersection(const hashset_t *const first, const hashset_t *c
 }
 
 
-hashset_t *hs_make_diff(const hashset_t *const first, const hashset_t *const second)
+hashset_t *hs_make_diff(hashset_t *const first, const hashset_t *const second)
 {
     assert(first);
     assert(second);
@@ -309,7 +309,7 @@ struct two_sets
     const hashset_t *const a, *const b;
 };
 
-hashset_t *hs_make_symdiff(const hashset_t *const first, const hashset_t *const second)
+hashset_t *hs_make_symdiff(hashset_t *const first, const hashset_t *const second)
 {
     assert(first);
     assert(second);
