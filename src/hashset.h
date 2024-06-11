@@ -14,30 +14,32 @@ typedef struct hs_opts
 }
 hs_opts_t;
 
+typedef enum hs_status_t
+{
+    HS_SUCCESS = VECTOR_SUCCESS,
+    HS_ALREADY_EXISTS = VECTOR_STATUS_LAST
+}
+hs_status_t;
+
 /*
 * The wrapper for `hs_create_` function that provides default values.
 */
-#define hs_create(hs_ptr, ...) {\
-    _Pragma("GCC diagnostic push") \
-    _Pragma("GCC diagnostic ignored \"-Woverride-init\"") \
-    hs_create_(&hs_ptr, &(hs_opts_t){ \
+#define hs_create(...) \
+    hs_create_(&(hs_opts_t){ \
         .initial_cap = 256, \
         __VA_ARGS__ \
-    }); \
-    _Pragma("GCC diagnostic pop") \
-}
-
+    })
 
 /*
 * Creates hashset
 */
-void hs_create_(hashset_t **const set, const hs_opts_t *const opts);
+hashset_t *hs_create_(const hs_opts_t *const opts);
 
 
 /*
 * Makes exact copy of the original set.
 */ 
-hashset_t *hs_clone(hashset_t *const set);
+hashset_t *hs_clone(const hashset_t *const set);
 
 
 /*
@@ -56,7 +58,7 @@ bool hs_contains(const hashset_t *const set, const void *const value);
 * Inserts new value into the set.
 * Returns true when value added and false if it already contained.
 */
-bool hs_insert(hashset_t **const set, const void *const value);
+hs_status_t hs_insert(hashset_t **const set, const void *const value);
 
 
 /*
@@ -68,7 +70,7 @@ bool hs_insert(hashset_t **const set, const void *const value);
 *    = 1.0f -> reserve as match free space as elements currently stored, etc...
 *  ).
 */
-void hs_shrink_reserve(hashset_t **const set, const float reserve);
+hs_status_t hs_shrink_reserve(hashset_t **const set, const float reserve);
 
 
 /*
@@ -87,7 +89,7 @@ size_t hs_remove_many(hashset_t *const set, const predicate_t predicate, void *c
 /*
 * Modifies `set` in a way that it will contain union of itself with `other` set. (OR)
 */
-void hs_add(hashset_t **const set, const hashset_t *const other);
+hs_status_t hs_add(hashset_t **const set, const hashset_t *const other);
 
 
 /*

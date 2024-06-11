@@ -14,8 +14,7 @@ static hash_t hash_int(const void *ptr, size_t size)
 
 static void setup_empty(void)
 {
-    hs_create(set,
-        .value_size = sizeof(int),
+    set = hs_create(.value_size = sizeof(int),
         .hashfunc = hash_int
     );
 }
@@ -24,8 +23,7 @@ static void setup_full(void)
 {
     const size_t cap = 100;
 
-    hs_create(set,
-        .value_size = sizeof(int),
+    set = hs_create(.value_size = sizeof(int),
         .hashfunc = hash_int,
         .initial_cap = cap
     );
@@ -33,14 +31,14 @@ static void setup_full(void)
     // full capacity
     for (int i = 0; i < (int)cap; ++i)
     {
-        ck_assert(hs_insert(&set, &i));
+        ck_assert_uint_eq(HS_SUCCESS, hs_insert(&set, &i));
     }
 }
 
 static void setup_two_sets(void)
 {
     const size_t cap = 10;
-    hs_create(set,
+    set = hs_create(
         .value_size = sizeof(int),
         .hashfunc = hash_int,
         .initial_cap = cap
@@ -49,10 +47,10 @@ static void setup_two_sets(void)
     /* 1 - 10 */
     for (int i = 1; i <= 10; ++i)
     {
-        (void) hs_insert(&set, &i);
+        ck_assert_uint_eq(HS_SUCCESS, hs_insert(&set, &i));
     }
 
-    hs_create(other,
+    other = hs_create(
         .value_size = sizeof(int),
         .hashfunc = hash_int,
         .initial_cap = cap
@@ -61,7 +59,7 @@ static void setup_two_sets(void)
     /* 5 - 15 */
     for (int i = 5; i <= 15; ++i)
     {
-        (void) hs_insert(&other, &i);
+        ck_assert_uint_eq(HS_SUCCESS, hs_insert(&other, &i));
     }
 }
 
@@ -87,11 +85,11 @@ END_TEST
 START_TEST (test_hs_insert)
 {
     const int value = 100;
-    bool retval = hs_insert(&set, &value);
-    ck_assert(retval);
+    hs_status_t status = hs_insert(&set, &value);
+    ck_assert_uint_eq(HS_SUCCESS, status);
 
-    retval = hs_insert(&set, &value);
-    ck_assert(!retval);
+    status = hs_insert(&set, &value);
+    ck_assert_uint_eq(HS_ALREADY_EXISTS, status);
 }
 END_TEST
 
@@ -103,7 +101,7 @@ START_TEST (test_hs_insert_full)
     // full capacity
     for (int i = 0; i < cap; ++i)
     {
-        ck_assert(hs_insert(&set, &i));
+        ck_assert_uint_eq(HS_SUCCESS, hs_insert(&set, &i));
     }
 
     cap = hs_capacity(set);
@@ -133,7 +131,7 @@ START_TEST (test_hs_insert_rehash)
     // full capacity
     for (int i = 0; i < old_cap; ++i)
     {
-        ck_assert(hs_insert(&set, &i));
+        ck_assert_uint_eq(HS_SUCCESS, hs_insert(&set, &i));
     }
 
     int value = 999;
@@ -231,7 +229,7 @@ END_TEST
 
 START_TEST (test_hs_add)
 {
-    hs_add(&set, other);
+    ck_assert_uint_eq(HS_SUCCESS, hs_add(&set, other));
 
     /* includes both ranges */
     for (int i = 1; i <= 15; ++i)

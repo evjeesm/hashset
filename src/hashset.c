@@ -43,7 +43,7 @@ static void set_value(hashset_t *const set, const size_t index, const void *cons
 static char *get_value(const hashset_t *const set, const size_t index);
 
 static void randomize_factors(hs_header_t *const header);
-static void rehash(hashset_t **const set, const size_t new_cap);
+static hs_status_t rehash(hashset_t **const set, const size_t new_cap);
 static bool contained_in(const void *const element, void *const param);
 static bool not_contained_in(const void *const element, void *const param);
 static bool contained_in_both(const void *const element, void *const param);
@@ -53,8 +53,9 @@ static bool contained_in_both(const void *const element, void *const param);
 * === API implementation === *
 ***                       ***/
 
-void hs_create_(hashset_t **const set, const hs_opts_t *const opts)
+hashset_t *hs_create_(const hs_opts_t *const opts)
 {
+    assert(opts);
     assert(opts->value_size && "value_size wasn't provided");
     assert(opts->hashfunc && "hashfunc wasn't provided");
 
@@ -62,14 +63,16 @@ void hs_create_(hashset_t **const set, const hs_opts_t *const opts)
     const size_t usage_tbl_size = calc_usage_tbl_size(opts->initial_cap);
 
     /* allocate storage for hashset */
-    vector_create(*set,
+    hashset_t *set = vector_create(
         .data_offset = sizeof(hs_header_t) + usage_tbl_size,
         .initial_cap = opts->initial_cap,
         .element_size = aligned_value_size
     );
+    
+    if (!set) return NULL;
 
     /* initializing hashset related data */
-    hs_header_t *header = get_hs_header(*set);
+    hs_header_t *header = get_hs_header(set);
 
     *header = (hs_header_t){
        .value_size = opts->value_size,
@@ -78,10 +81,12 @@ void hs_create_(hashset_t **const set, const hs_opts_t *const opts)
 
     bitset_init(header->usage_tbl, usage_tbl_size);
     randomize_factors(header);
+
+    return set;
 }
 
 
-hashset_t *hs_clone(hashset_t *const set)
+hashset_t *hs_clone(const hashset_t *const set)
 {
     assert(set);
     return vector_clone(set);
@@ -129,7 +134,7 @@ bool hs_contains(const hashset_t *const set, const void *const value)
 }
 
 
-bool hs_insert(hashset_t **set, const void *const value)
+hs_status_t hs_insert(hashset_t **set, const void *const value)
 {
     assert(set && *set);
     assert(value);
@@ -148,24 +153,27 @@ bool hs_insert(hashset_t **set, const void *const value)
         {
             bitset_set(header->usage_tbl, BIT_FIELD_LEN, index, HS_SLOT_USED);
             set_value(*set, index, value);
-            return true;
+            return HS_SUCCESS;
         }
         else if (0 == memcmp(value, get_value(*set, index), header->value_size))
         {
-            return false;
+            return HS_ALREADY_EXISTS;
         }
     }
 
     const size_t new_capacity = 2 * hs_capacity(*set);
-    rehash(set, new_capacity);
+
+    hs_status_t status = rehash(set, new_capacity);
+    if (HS_SUCCESS != status) return status;
+
     /* rehash never fails unless allocation error
      * occires in which case vector_error_handler will exit from the application. */
     (void)hs_insert(set, value);
-    return true;
+    return HS_SUCCESS;
 }
 
 
-void hs_shrink_reserve(hashset_t **const set, const float reserve)
+hs_status_t hs_shrink_reserve(hashset_t **const set, const float reserve)
 {
     assert(set && *set);
     assert(reserve >= 0.0f);
@@ -173,7 +181,7 @@ void hs_shrink_reserve(hashset_t **const set, const float reserve)
     const size_t count = hs_count(*set);
     const size_t new_cap = count * (1.0f + reserve);
 
-    rehash(set, new_cap);
+    return rehash(set, new_cap);
 }
 
 
@@ -235,7 +243,7 @@ size_t hs_remove_many(hashset_t *const set, const predicate_t predicate, void *c
 }
 
 
-void hs_add(hashset_t **const set, const hashset_t *const other)
+hs_status_t hs_add(hashset_t **const set, const hashset_t *const other)
 {
     assert(set && *set);
     assert(other);
@@ -247,9 +255,13 @@ void hs_add(hashset_t **const set, const hashset_t *const other)
     {
         if (HS_SLOT_USED == bitset_test(other_header->usage_tbl, BIT_FIELD_LEN, i))
         {
-            (void) hs_insert(set, get_value(other, i));
+            /* FIXME: if insert failes, `set` will stay in invalid halfmodified state */
+            hs_status_t status = hs_insert(set, get_value(other, i));
+            if (status == VECTOR_ALLOC_ERROR) return status;
         }
     }
+
+    return HS_SUCCESS;
 }
 
 
@@ -277,7 +289,13 @@ hashset_t *hs_make_union(hashset_t *const first, const hashset_t *const second)
     assert(second);
 
     hashset_t *result = hs_clone(first);
-    hs_add(&result, second);
+
+    if (HS_SUCCESS != hs_add(&result, second))
+    {
+        hs_destroy(result);
+        return NULL;
+    }
+
     return result;
 }
 
@@ -355,10 +373,12 @@ vector_t *hs_values(const hashset_t *const set)
     const hs_header_t *header = get_hs_header(set);
     const size_t capacity = hs_capacity(set);
 
-    vector_t *values;
-    vector_create(values,
+    vector_t *values = vector_create(
         .element_size = calc_aligned_size(header->value_size, ALIGNMENT),
-        .initial_cap = hs_count(set));
+        .initial_cap = hs_count(set)
+    );
+    
+    if (!values) return NULL;
 
     for (size_t slot = 0, value = 0; slot < capacity; ++slot)
     {
@@ -435,20 +455,19 @@ static size_t hash_to_index(const hs_header_t *header, const hash_t hash, const 
 }
 
 
-static void rehash(hashset_t **const set, const size_t new_cap)
+static hs_status_t rehash(hashset_t **const set, const size_t new_cap)
 {
     assert(new_cap >= hs_count(*set));
 
     const hs_header_t *old_header = get_hs_header(*set);
     const size_t prev_capacity = vector_initial_capacity(*set);
 
-    hashset_t *new;
-
-    hs_create(new,
-        .initial_cap = new_cap,
+    hashset_t *new = hs_create(.initial_cap = new_cap,
         .value_size = old_header->value_size,
         .hashfunc = old_header->hashfunc,
     );
+
+    if (!new) return (hs_status_t)VECTOR_ALLOC_ERROR;
 
     for (size_t i = 0; i < prev_capacity; ++i)
     {
@@ -460,6 +479,7 @@ static void rehash(hashset_t **const set, const size_t new_cap)
 
     hs_destroy(*set);
     *set = new;
+    return HS_SUCCESS;
 }
 
 
