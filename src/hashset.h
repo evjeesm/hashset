@@ -17,6 +17,7 @@ hs_opts_t;
 typedef enum hs_status_t
 {
     HS_SUCCESS = VECTOR_SUCCESS,
+    HS_ALLOC_ERROR = VECTOR_ALLOC_ERROR,
     HS_ALREADY_EXISTS = VECTOR_STATUS_LAST
 }
 hs_status_t;

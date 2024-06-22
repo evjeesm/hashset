@@ -6,12 +6,6 @@
 static hashset_t *set;
 static hashset_t *other;
 
-static hash_t hash_int(const void *ptr, size_t size)
-{
-    (void)size;
-    return hash(*(int*)ptr);
-}
-
 static void setup_empty(void)
 {
     set = hs_create(.value_size = sizeof(int),

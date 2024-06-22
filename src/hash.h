@@ -10,30 +10,37 @@
 typedef size_t hash_t;
 typedef hash_t (*hashfunc_t)(const void *ptr, size_t size);
 
-hash_t hash_str(const char *str);
-hash_t hash_strn(const char *str, size_t size);
-hash_t hash_llong(long long value);
-hash_t hash_ldouble(long double value);
+hash_t hash_ptr(const void *const value, const size_t size);
+hash_t hash_longlong(const void *const value, const size_t size);
+hash_t hash_long(const void *const value, const size_t size);
+hash_t hash_int(const void *const value, const size_t size);
+hash_t hash_short(const void *const value, const size_t size);
+hash_t hash_char(const void *const value, const size_t size);
+hash_t hash_ldouble(const void *const value, const size_t size);
+hash_t hash_double(const void *const value, const size_t size);
+hash_t hash_float(const void *const value, const size_t size);
+hash_t hash_str(const void *const value, const size_t size);
 
-#define hash(value, ...) \
+#define HASHFUNC_FOR(value) \
     _Generic((value), \
-        unsigned char: hash_llong, \
-        char: hash_llong, \
-        unsigned short: hash_llong, \
-        short: hash_llong, \
-        unsigned int: hash_llong, \
-        int: hash_llong, \
-        unsigned long: hash_llong, \
-        long: hash_llong, \
-        unsigned long long: hash_llong, \
-        long long: hash_llong, \
-        void* : hash_llong, \
-        float: hash_ldouble, \
-        double: hash_ldouble, \
+        unsigned char: hash_char, \
+        char: hash_char, \
+        unsigned short: hash_short, \
+        short: hash_short, \
+        unsigned int: hash_int, \
+        int: hash_int, \
+        unsigned long: hash_long, \
+        long: hash_long, \
+        unsigned long long: hash_longlong, \
+        long long: hash_longlong, \
+        void* : hash_ptr, \
+        float: hash_float, \
+        double: hash_double, \
         long double: hash_ldouble, \
         const char *: hash_str, \
-        char* : hash_strn \
+        char* : hash_str \
         ) \
-    (value ,##__VA_ARGS__)
+
+#define hash(value) HASHFUNC_FOR(value)(&value, sizeof(value))
 
 #endif/*_HASH_H_*/

@@ -166,9 +166,7 @@ hs_status_t hs_insert(hashset_t **set, const void *const value)
     hs_status_t status = rehash(set, new_capacity);
     if (HS_SUCCESS != status) return status;
 
-    /* rehash never fails unless allocation error
-     * occires in which case vector_error_handler will exit from the application. */
-    (void)hs_insert(set, value);
+    (void) hs_insert(set, value);
     return HS_SUCCESS;
 }
 
@@ -257,7 +255,7 @@ hs_status_t hs_add(hashset_t **const set, const hashset_t *const other)
         {
             /* FIXME: if insert failes, `set` will stay in invalid halfmodified state */
             hs_status_t status = hs_insert(set, get_value(other, i));
-            if (status == VECTOR_ALLOC_ERROR) return status;
+            if (status == HS_ALLOC_ERROR) return status;
         }
     }
 
