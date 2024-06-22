@@ -9,7 +9,6 @@
 #define SMALL_PRIME_1 17
 #define SMALL_PRIME_2 23
 
-#define ABS(x) (x < 0 ? -x : x)
 
 
 hash_t hash_ptr(const void *const value, const size_t size)
