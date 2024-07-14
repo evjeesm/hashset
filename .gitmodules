@@ -1,6 +1,6 @@
 [submodule "hash"]
 	path = hash
-	url = git@github.com:JekasObps/hash
+	url = git@github.com:evjeesm/hash
 	branch = main
 [submodule "vector"]
 	path = vector
