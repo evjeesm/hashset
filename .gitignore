@@ -1,11 +1,12 @@
 *
 
 # submodules:
-!hash
 !.gitmodules
+!hash
+!vector
 
-!src/
-!tests/
+!src
+!tests
 !*.c
 !*.h
 !*.am
@@ -14,4 +15,5 @@
 !.gitignore
 !.clangd
 !autogen.sh
+
 config.h
