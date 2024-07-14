@@ -3,6 +3,7 @@
 # submodules:
 !.gitmodules
 !hash
+!memory
 !vector
 
 !src
