@@ -1,9 +1,10 @@
 # Hash Set
+![check](https://github.com/evjeesm/hashset/actions/workflows/makefile.yml/badge.svg)
 
 My recreation of well known fast lookup data structure.
 Includes common set operations.
 
-This project is a part of (vector)[https://github.com/evgeesm/vector) hierarchy.
+This project is a part of [vector](https://github.com/evjeesm/vector) hierarchy.
 
 ## Implementation details
 
