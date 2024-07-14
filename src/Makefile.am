@@ -2,8 +2,8 @@ noinst_LTLIBRARIES = libhashset_funcs.la
 lib_LTLIBRARIES = libhashset.la libhashset_static.la
 
 libhashset_funcs_la_SOURCES = hashset.c hash.c hashset.h
-libhashset_funcs_la_CFLAGS = -I$(top_srcdir)/vector/src/
-libhashset_funcs_la_LDFLAGS = -L$(top_builddir)/vector/src/
+libhashset_funcs_la_CFLAGS = -I$(top_srcdir)/vector/src
+libhashset_funcs_la_LDFLAGS = -L$(top_builddir)/vector/src
 
 libhashset_la_SOURCES =
 libhashset_la_LDFLAGS = -shared
