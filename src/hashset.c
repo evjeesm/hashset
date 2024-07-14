@@ -65,7 +65,8 @@ hashset_t *hs_create_(const hs_opts_t *const opts)
     hashset_t *set = vector_create(
         .data_offset = sizeof(hs_header_t) + usage_tbl_size,
         .initial_cap = opts->initial_cap,
-        .element_size = aligned_value_size
+        .element_size = aligned_value_size,
+        .alloc_param = opts->alloc_param,
     );
     
     if (!set) return NULL;

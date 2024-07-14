@@ -11,6 +11,7 @@ typedef struct hs_opts
     size_t value_size;
     size_t initial_cap;
     hashfunc_t hashfunc;
+    void *alloc_param;
 }
 hs_opts_t;
 
